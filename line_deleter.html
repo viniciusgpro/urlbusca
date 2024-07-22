@@ -14,46 +14,58 @@
     </div>
     <div class="container">
         <h1>Deletor de Linhas</h1>
-        <input type="file" id="fileInput" accept=".txt" class="file-input">
+        <input type="file" id="fileInput" accept=".txt" class="file-input" multiple>
         <input type="text" id="urlInput" placeholder="Digite a URL para deletar" class="text-input">
-        <button onclick="processFile()" class="btn">Deletar Linhas</button>
+        <button onclick="processFiles()" class="btn">Deletar Linhas</button>
         <a id="downloadLink" class="download-link" style="display: none;">Download Arquivo Atualizado</a>
         <button onclick="toggleInstructions()" class="btn">Como Funciona</button>
         <div id="instructions" class="instructions" style="display: none;">
             <p>Para usar esta ferramenta:</p>
             <ol>
-                <li>Selecione um arquivo .txt clicando no botão "Escolher arquivo".</li>
+                <li>Selecione um ou mais arquivos .txt clicando no botão "Escolher arquivo".</li>
                 <li>Digite a URL que deseja remover do arquivo no campo de texto.</li>
-                <li>Clique no botão "Deletar Linhas" para processar o arquivo.</li>
+                <li>Clique no botão "Deletar Linhas" para processar os arquivos.</li>
                 <li>Baixe o arquivo atualizado clicando no link "Download Arquivo Atualizado" que aparecerá após o processamento.</li>
-                <li>Esse arquivo não foi feito para deletar a URL em si. Ele vai deletar a URL, o e-mail e a senha que estiverem na frente dela também, assim impedindo que você teste a mesma conta sem querer.</li>
+                <li>Este arquivo não foi feito para deletar a URL em si. Ele vai deletar a URL, o e-mail e a senha que estiverem na frente dela também, assim impedindo que você teste a mesma conta sem querer.</li>
             </ol>
         </div>
     </div>
 
     <script>
-        function processFile() {
+        function processFiles() {
             const fileInput = document.getElementById('fileInput');
             const urlInput = document.getElementById('urlInput').value;
             const downloadLink = document.getElementById('downloadLink');
 
             if (!fileInput.files.length) {
-                alert('Por favor, selecione um arquivo.');
+                alert('Por favor, selecione um ou mais arquivos.');
                 return;
             }
 
-            const file = fileInput.files[0];
-            const reader = new FileReader();
+            const files = Array.from(fileInput.files);
+            const promises = files.map(file => processFile(file, urlInput));
 
-            reader.onload = function(e) {
-                const lines = e.target.result.split('\n');
-                const filteredLines = lines.filter(line => !line.includes(urlInput));
-                const newContent = filteredLines.join('\n');
+            Promise.all(promises)
+                .then(results => {
+                    const allFilteredLines = results.flat();
+                    const newContent = allFilteredLines.join('\n');
+                    createDownloadLink(newContent);
+                });
+        }
 
-                createDownloadLink(newContent);
-            };
-
-            reader.readAsText(file);
+        function processFile(file, urlToRemove) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const lines = e.target.result.split('\n');
+                    const filteredLines = lines.filter(line => !line.includes(urlToRemove));
+                    resolve(filteredLines);
+                };
+                reader.onerror = function() {
+                    reject(new Error('Error reading file'));
+                };
+                reader.readAsText(file);
+            });
         }
 
         function createDownloadLink(content) {
@@ -69,11 +81,7 @@
 
         function toggleInstructions() {
             const instructions = document.getElementById('instructions');
-            if (instructions.style.display === 'none') {
-                instructions.style.display = 'block';
-            } else {
-                instructions.style.display = 'none';
-            }
+            instructions.style.display = instructions.style.display === 'none' ? 'block' : 'none';
         }
     </script>
 </body>
