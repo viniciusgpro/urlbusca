@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Filter</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <video autoplay muted loop id="background-video">
+        <source src="video/0721.mp4" type="video/mp4">
+        Seu navegador não suporta o elemento de vídeo.
+    </video>
+    <div class="container">
+        <h1>@vinigpro - URLs</h1>
+        <input type="file" id="file-input">
+        <input type="text" id="filter-input" placeholder="Cole os domínios a serem filtrados, separados por vírgula...">
+        <button id="filter-button">Filtrar</button>
+        <button id="saved-accounts-button">Contas Salvas</button>
+        <button id="line-deleter-button">Deletor de Linhas</button>
+        <div id="tabs"></div>
+        <div id="results"></div>
+        <div id="saved-accounts" class="hidden">
+            <h2>Contas Salvas</h2>
+            <div id="saved-results"></div>
+        </div>
+    </div>
+    <script>
+        document.getElementById('line-deleter-button').addEventListener('click', function() {
+            window.location.href = 'line_deleter.html'; // Redireciona para a página de deletor de linhas
+        });
+
+        document.getElementById('filter-button').addEventListener('click', function() {
+            const fileInput = document.getElementById('file-input');
+            if (!fileInput.files.length) {
+                alert('Por favor, carregue um arquivo de texto.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const filterInput = document.getElementById('filter-input').value;
+            const filters = filterInput.split(',').map(filter => filter.trim());
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const lines = event.target.result.split('\n');
+                const filteredLines = lines.filter(line => filters.some(filter => line.includes(filter)));
+
+                if (filteredLines.length === 0) {
+                    showMessage();
+                } else {
+                    paginateResults(filteredLines);
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        document.getElementById('saved-accounts-button').addEventListener('click', function() {
+            const savedAccountsDiv = document.getElementById('saved-accounts');
+            const savedResults = document.getElementById('saved-results');
+            savedResults.innerHTML = '';
+
+            savedAccounts.forEach(account => {
+                const lineElement = document.createElement('p');
+                lineElement.textContent = account;
+                savedResults.appendChild(lineElement);
+            });
+
+            savedAccountsDiv.classList.toggle('hidden');
+        });
+
+        let savedAccounts = JSON.parse(localStorage.getItem('savedAccounts')) || [];
+
+        function showMessage() {
+            const resultsContainer = document.getElementById('results');
+            resultsContainer.innerHTML = '<p>Não está vendo? Como você não vê? Você é cego, cara! Não tem nada aqui kkk</p>';
+            const tabsContainer = document.getElementById('tabs');
+            tabsContainer.innerHTML = '';
+        }
+
+        function paginateResults(lines) {
+            const resultsContainer = document.getElementById('results');
+            const tabsContainer = document.getElementById('tabs');
+            resultsContainer.innerHTML = '';
+            tabsContainer.innerHTML = '';
+
+            const linesPerPage = 500;
+            const numPages = Math.ceil(lines.length / linesPerPage);
+
+            for (let i = 0; i < numPages; i++) {
+                const tab = document.createElement('button');
+                tab.textContent = i + 1;
+                tab.addEventListener('click', () => showPage(i, lines, linesPerPage));
+                tabsContainer.appendChild(tab);
+            }
+
+            if (numPages > 0) {
+                showPage(0, lines, linesPerPage);
+            }
+        }
+
+        function showPage(pageIndex, lines, linesPerPage) {
+            const resultsContainer = document.getElementById('results');
+            resultsContainer.innerHTML = '';
+
+            const start = pageIndex * linesPerPage;
+            const end = Math.min(start + linesPerPage, lines.length);
+
+            for (let i = start; i < end; i++) {
+                const lineElement = document.createElement('div');
+                lineElement.classList.add('line-item');
+
+                const textElement = document.createElement('p');
+                textElement.textContent = lines[i];
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'X';
+                deleteButton.classList.add('delete-button');
+                deleteButton.addEventListener('click', () => {
+                    lines.splice(i, 1);
+                    showPage(pageIndex, lines, linesPerPage);
+                });
+
+                const saveButton = document.createElement('button');
+                saveButton.textContent = 'Salvar';
+                saveButton.classList.add('save-button');
+                saveButton.addEventListener('click', () => {
+                    savedAccounts.push(lines[i]);
+                    localStorage.setItem('savedAccounts', JSON.stringify(savedAccounts));
+                    alert('Conta salva com sucesso!');
+                });
+
+                lineElement.appendChild(textElement);
+                lineElement.appendChild(deleteButton);
+                lineElement.appendChild(saveButton);
+                resultsContainer.appendChild(lineElement);
+            }
+        }
+
+        window.onload = function() {
+            const savedAccountsButton = document.getElementById('saved-accounts-button');
+            savedAccountsButton.click(); // Load saved accounts on page load
+        };
+    </script>
+</body>
+</html>
