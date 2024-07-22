@@ -13,11 +13,15 @@
     </video>
     <div class="container">
         <h1>@vinigpro - URLs</h1>
-        <input type="file" id="file-input">
+        <input type="file" id="file-input" multiple>
         <input type="text" id="filter-input" placeholder="Cole os domínios a serem filtrados, separados por vírgula...">
         <button id="filter-button">Filtrar</button>
         <button id="saved-accounts-button">Contas Salvas</button>
         <button id="line-deleter-button">Deletor de Linhas</button>
+        <div id="progress-container" class="hidden">
+            <progress id="progress-bar" value="0" max="100"></progress>
+            <span id="progress-text">0%</span>
+        </div>
         <div id="tabs"></div>
         <div id="results"></div>
         <div id="saved-accounts" class="hidden">
@@ -33,27 +37,55 @@
         document.getElementById('filter-button').addEventListener('click', function() {
             const fileInput = document.getElementById('file-input');
             if (!fileInput.files.length) {
-                alert('Por favor, carregue um arquivo de texto.');
+                alert('Por favor, carregue pelo menos um arquivo de texto.');
                 return;
             }
 
-            const file = fileInput.files[0];
             const filterInput = document.getElementById('filter-input').value;
             const filters = filterInput.split(',').map(filter => filter.trim());
 
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const lines = event.target.result.split('\n');
-                const filteredLines = lines.filter(line => filters.some(filter => line.includes(filter)));
+            const files = Array.from(fileInput.files);
+            let allLines = [];
+            let filesProcessed = 0;
 
-                if (filteredLines.length === 0) {
-                    showMessage();
-                } else {
-                    paginateResults(filteredLines);
-                }
-            };
-            reader.readAsText(file);
+            // Mostrar o indicador de progresso
+            document.getElementById('progress-container').classList.remove('hidden');
+
+            files.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const lines = event.target.result.split('\n');
+                    allLines = allLines.concat(lines);
+                    filesProcessed++;
+
+                    // Atualizar a barra de progresso
+                    updateProgress(filesProcessed, files.length);
+
+                    // Verifica se todos os arquivos foram processados
+                    if (filesProcessed === files.length) {
+                        const filteredLines = allLines.filter(line => filters.some(filter => line.includes(filter)));
+                        if (filteredLines.length === 0) {
+                            showMessage();
+                        } else {
+                            paginateResults(filteredLines);
+                        }
+
+                        // Esconder o indicador de progresso quando o processamento terminar
+                        document.getElementById('progress-container').classList.add('hidden');
+                    }
+                };
+                reader.readAsText(file);
+            });
         });
+
+        function updateProgress(current, total) {
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const percentage = Math.round((current / total) * 100);
+
+            progressBar.value = percentage;
+            progressText.textContent = `${percentage}%`;
+        }
 
         document.getElementById('saved-accounts-button').addEventListener('click', function() {
             const savedAccountsDiv = document.getElementById('saved-accounts');
