@@ -3,37 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>URL Filter</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Line Deleter</title>
+    <link rel="stylesheet" href="line_deleter.css">
 </head>
 <body>
-    <video autoplay muted loop id="background-video">
-        <source src="video/0721.mp4" type="video/mp4">
-        Seu navegador não suporta o elemento de vídeo.
-    </video>
+    <div class="video-background">
+        <video autoplay muted loop id="bgVideo">
+            <source src="video/fundo1.mp4" type="video/mp4">
+        </video>
+    </div>
     <div class="container">
-        <h1>@vinigpro - URLs</h1>
-        <input type="file" id="file-input" multiple>
-        <input type="text" id="filter-input" placeholder="Cole os domínios a serem filtrados, separados por vírgula...">
-        <button id="filter-button">Filtrar</button>
-        <button id="saved-accounts-button">Contas Salvas</button>
-        <button id="line-deleter-button">Deletor de Linhas</button>
+        <h1>Deletor de Linhas</h1>
+        <input type="file" id="file-input" accept=".txt" multiple>
+        <input type="text" id="filter-input" placeholder="Digite a URL para deletar">
+        <button id="filter-button">Deletar Linhas</button>
+        <div id="tabs"></div>
+        <div id="results"></div>
         <div id="progress-container" class="hidden">
             <progress id="progress-bar" value="0" max="100"></progress>
             <span id="progress-text">0%</span>
         </div>
-        <div id="tabs"></div>
-        <div id="results"></div>
-        <div id="saved-accounts" class="hidden">
-            <h2>Contas Salvas</h2>
-            <div id="saved-results"></div>
+        <div id="download-all" class="hidden">
+            <a id="download-all-link" class="download-link" download="filtered_lines.txt">Baixar Todas as Linhas</a>
         </div>
     </div>
-    <script>
-        document.getElementById('line-deleter-button').addEventListener('click', function() {
-            window.location.href = 'line_deleter.html'; // Redireciona para a página de deletor de linhas
-        });
 
+    <script>
         document.getElementById('filter-button').addEventListener('click', function() {
             const fileInput = document.getElementById('file-input');
             if (!fileInput.files.length) {
@@ -48,7 +43,6 @@
             let allLines = [];
             let filesProcessed = 0;
 
-            // Mostrar o indicador de progresso
             document.getElementById('progress-container').classList.remove('hidden');
 
             files.forEach((file, index) => {
@@ -58,25 +52,27 @@
                     allLines = allLines.concat(lines);
                     filesProcessed++;
 
-                    // Atualizar a barra de progresso
                     updateProgress(filesProcessed, files.length);
 
-                    // Verifica se todos os arquivos foram processados
                     if (filesProcessed === files.length) {
-                        const filteredLines = allLines.filter(line => filters.some(filter => line.includes(filter)));
-                        if (filteredLines.length === 0) {
-                            showMessage();
-                        } else {
-                            paginateResults(filteredLines);
-                        }
-
-                        // Esconder o indicador de progresso quando o processamento terminar
+                        const filteredLines = allLines.filter(line => !filters.some(filter => line.includes(filter)));
+                        paginateResults(filteredLines);
+                        createDownloadAllLink(filteredLines);
                         document.getElementById('progress-container').classList.add('hidden');
                     }
                 };
                 reader.readAsText(file);
             });
         });
+
+        function createDownloadAllLink(filteredLines) {
+            const blob = new Blob([filteredLines.join('\n')], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+
+            const downloadAllLink = document.getElementById('download-all-link');
+            downloadAllLink.href = url;
+            document.getElementById('download-all').classList.remove('hidden');
+        }
 
         function updateProgress(current, total) {
             const progressBar = document.getElementById('progress-bar');
@@ -85,29 +81,6 @@
 
             progressBar.value = percentage;
             progressText.textContent = `${percentage}%`;
-        }
-
-        document.getElementById('saved-accounts-button').addEventListener('click', function() {
-            const savedAccountsDiv = document.getElementById('saved-accounts');
-            const savedResults = document.getElementById('saved-results');
-            savedResults.innerHTML = '';
-
-            savedAccounts.forEach(account => {
-                const lineElement = document.createElement('p');
-                lineElement.textContent = account;
-                savedResults.appendChild(lineElement);
-            });
-
-            savedAccountsDiv.classList.toggle('hidden');
-        });
-
-        let savedAccounts = JSON.parse(localStorage.getItem('savedAccounts')) || [];
-
-        function showMessage() {
-            const resultsContainer = document.getElementById('results');
-            resultsContainer.innerHTML = '<p>Não está vendo? Como você não vê? Você é cego, cara! Não tem nada aqui kkk</p>';
-            const tabsContainer = document.getElementById('tabs');
-            tabsContainer.innerHTML = '';
         }
 
         function paginateResults(lines) {
@@ -145,34 +118,10 @@
                 const textElement = document.createElement('p');
                 textElement.textContent = lines[i];
 
-                const deleteButton = document.createElement('button');
-                deleteButton.textContent = 'X';
-                deleteButton.classList.add('delete-button');
-                deleteButton.addEventListener('click', () => {
-                    lines.splice(i, 1);
-                    showPage(pageIndex, lines, linesPerPage);
-                });
-
-                const saveButton = document.createElement('button');
-                saveButton.textContent = 'Salvar';
-                saveButton.classList.add('save-button');
-                saveButton.addEventListener('click', () => {
-                    savedAccounts.push(lines[i]);
-                    localStorage.setItem('savedAccounts', JSON.stringify(savedAccounts));
-                    alert('Conta salva com sucesso!');
-                });
-
                 lineElement.appendChild(textElement);
-                lineElement.appendChild(deleteButton);
-                lineElement.appendChild(saveButton);
                 resultsContainer.appendChild(lineElement);
             }
         }
-
-        window.onload = function() {
-            const savedAccountsButton = document.getElementById('saved-accounts-button');
-            savedAccountsButton.click(); // Load saved accounts on page load
-        };
     </script>
 </body>
 </html>
