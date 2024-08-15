@@ -18,6 +18,7 @@
         <button id="filter-button">Filtrar</button>
         <button id="saved-accounts-button">Contas Salvas</button>
         <button id="line-deleter-button">Deletor de Linhas</button>
+        <button id="download-button" class="hidden">Download TXT</button>
         <div id="progress-container" class="hidden">
             <progress id="progress-bar" value="0" max="100"></progress>
             <span id="progress-text">0%</span>
@@ -30,6 +31,8 @@
         </div>
     </div>
     <script>
+        let filteredLines = []; // Variable to store filtered lines
+
         document.getElementById('line-deleter-button').addEventListener('click', function() {
             window.location.href = 'line_deleter.html'; // Redireciona para a página de deletor de linhas
         });
@@ -63,11 +66,13 @@
 
                     // Verifica se todos os arquivos foram processados
                     if (filesProcessed === files.length) {
-                        const filteredLines = allLines.filter(line => filters.some(filter => line.includes(filter)));
+                        filteredLines = allLines.filter(line => filters.some(filter => line.includes(filter)));
                         if (filteredLines.length === 0) {
                             showMessage();
                         } else {
                             paginateResults(filteredLines);
+                            // Mostrar o botão de download
+                            document.getElementById('download-button').classList.remove('hidden');
                         }
 
                         // Esconder o indicador de progresso quando o processamento terminar
@@ -168,6 +173,18 @@
                 resultsContainer.appendChild(lineElement);
             }
         }
+
+        document.getElementById('download-button').addEventListener('click', function() {
+            const blob = new Blob([filteredLines.join('\n')], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'filtered_lines.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
 
         window.onload = function() {
             const savedAccountsButton = document.getElementById('saved-accounts-button');
